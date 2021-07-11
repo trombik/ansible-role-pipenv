@@ -1,0 +1,6 @@
+---
+
+- name: Restart pipenv
+  service:
+    name: pipenv
+    state: restarted

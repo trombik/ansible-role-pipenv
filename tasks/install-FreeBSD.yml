@@ -1,0 +1,6 @@
+---
+
+- name: Install pipenv
+  pkgng:
+    name: pipenv
+    state: present

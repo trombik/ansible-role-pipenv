@@ -1,0 +1,6 @@
+---
+- hosts: localhost
+  roles:
+    - ansible-role-pipenv
+  vars:
+    pipenv_config: ""
