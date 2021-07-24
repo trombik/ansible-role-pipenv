@@ -1,6 +1,93 @@
 ---
 - hosts: localhost
   roles:
-    - ansible-role-pipenv
+    - name: trombik.git
+    - name: ansible-role-pipenv
   vars:
+    project_admin_username: admin
+    project_admin_password: password
+
     pipenv_config: ""
+    pipenv_extra_packages:
+      - databases/py-sqlite3
+    pipenv_environments:
+      - name: youtube-dl-server
+        git:
+          dest: /usr/local/youtube-dl-server
+          refspec: master
+          repo: https://github.com/katznboyz1/youtube-dl-server
+        owner: youtube-dl
+        group: youtube-dl
+        copy_files:
+          - dest: /usr/local/etc/rc.d/youtube_dl
+            owner: root
+            group: wheel
+            mode: '0755'
+            content: |
+              !/bin/sh
+
+              # PROVIDE: youtube_dl
+              # REQUIRE: network
+              # KEYWORD: shutdown
+
+              . /etc/rc.subr
+
+              name=youtube_dl
+              rcvar=youtube_dl_enable
+
+              command=/usr/local/bin/pipenv
+              pid_file="/var/run/${name}/${name}.pid"
+              procname="daemon"
+
+              start_cmd="${name}_start"
+              stop_cmd="${name}_stop"
+
+              youtube_dl_start()
+              {
+                  local pid
+                  HOME=$(/usr/sbin/pw usershow -7 -n "${youtube_dl_user}" | /usr/bin/cut -d: -f6)
+                  pid=$(check_pidfile $pid_file ${procname})
+                  if [ -n "${pid}" ]; then
+                      echo "${name} already running? (pid=${pid})."
+                      return 1
+                  fi
+
+                  echo -n "Starting ${name}"
+                  /usr/bin/install -d /var/run/youtube_dl
+                  /usr/bin/install -o ${youtube_dl_user} -g ${youtube_dl_group} -m 644 /dev/null ${pid_file}
+                  cd ${youtube_dl_dir}
+                  /usr/sbin/daemon -f -P ${pid_file} -t ${name} -u ${youtube_dl_user} -S ${command} ${youtube_dl_flags}
+                  echo "."
+              }
+
+              youtube_dl_stop()
+              {
+                  echo -n "Stopping ${name}"
+                  pid=$(check_pidfile $pid_file ${procname})
+                  echo ${pid}
+                  if [ ! -n "${pid}" ]; then
+                      echo "${name} is not running?"
+                      return 1
+                  fi
+                  kill -TERM ${pid}
+                  sleep 3
+                  echo "."
+              }
+
+              load_rc_config $name
+
+              : ${youtube_dl_enable:="NO"}
+              : ${youtube_dl_flags:="run gunicorn --workers 4 --threads 4 --bind 0.0.0.0:8080 wsgi:app"}
+              : ${youtube_dl_user="youtube-dl"}
+              : ${youtube_dl_group="youtube-dl"}
+              : ${youtube_dl_dir="/usr/local/youtube-dl-server"}
+
+              run_rc_command "$1"
+        shells:
+          before: []
+          after:
+            - name: Run setup.py
+              cmd: pipenv run python3 setup.py --appname youtube-dl-server --username {{ project_admin_username | quote }} --password {{ project_admin_password | quote }}
+              creates: /usr/local/youtube-dl-server/db/youtube-dl-server-database.db
+        services:
+          - name: youtube_dl

@@ -1,9 +1,5 @@
 ---
-pipenv_user: pipenv
-pipenv_group: pipenv
-pipenv_log_dir: /var/log/pipenv
-pipenv_db_dir: "{{ __pipenv_db_dir }}"
-pipenv_service: pipenv
-pipenv_conf_dir: "{{ __pipenv_conf_dir }}"
-pipenv_conf_file: "{{ __pipenv_conf_dir }}/pipenv.conf"
-pipenv_flags: ""
+pipenv_package: "{{ __pipenv_package }}"
+pipenv_extra_packages: "{{ __pipenv_extra_packages }}"
+pipenv_environments: []
+pipenv_bin: "{{ __pipenv_bin }}"

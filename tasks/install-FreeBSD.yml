@@ -1,6 +1,11 @@
 ---
 
+- name: Install pipenv_extra_packages
+  pkgng:
+    name: "{{ pipenv_extra_packages }}"
+    state: present
+
 - name: Install pipenv
   pkgng:
-    name: pipenv
+    name: "{{ pipenv_package }}"
     state: present

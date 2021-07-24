@@ -1,0 +1,114 @@
+---
+
+- name: "Create pipenv {{ __pipenv['name'] }}"
+  block:
+    - name: Assert required attributes
+      assert:
+        that:
+          - __pipenv['owner']
+          - __pipenv['group']
+          - __pipenv['git']
+          - __pipenv['git']['dest']
+          - __pipenv['git']['repo']
+
+    - name: Create group
+      group:
+        name: "{{ __pipenv['group'] }}"
+
+    - name: Create owner
+      user:
+        name: "{{ __pipenv['owner'] }}"
+        group: "{{ __pipenv['group'] }}"
+
+    - name: Create repository directory
+      file:
+        path: "{{ __pipenv['git']['dest'] }}"
+        mode: 0755
+        owner: "{{ __pipenv['owner'] }}"
+        group: "{{ __pipenv['group'] }}"
+        state: directory
+
+    - name: Checkout repository
+      become: yes
+      become_user: "{{ __pipenv['owner'] }}"
+      git:
+        accept_hostkey: "{{ __pipenv['git']['accept_hostkey'] | default(omit) }}"
+        archive: "{{ __pipenv['git']['archive'] | default(omit) }}"
+        archive_prefix: "{{ __pipenv['git']['archive_prefix'] | default(omit) }}"
+        bare: "{{ __pipenv['git']['bare'] | default(omit) }}"
+        clone: "{{ __pipenv['git']['clone'] | default(omit) }}"
+        depth: "{{ __pipenv['git']['depth'] | default(omit) }}"
+        dest: "{{ __pipenv['git']['dest'] }}"
+        executable: "{{ __pipenv['git']['executable'] | default(omit) }}"
+        force: "{{ __pipenv['git']['force'] | default(omit) }}"
+        gpg_whitelist: "{{ __pipenv['git']['gpg_whitelist'] | default(omit) }}"
+        key_file: "{{ __pipenv['git']['key_file'] | default(omit) }}"
+        recursive: "{{ __pipenv['git']['recursive'] | default(omit) }}"
+        reference: "{{ __pipenv['git']['reference'] | default(omit) }}"
+        refspec: "{{ __pipenv['git']['refspec'] | default(omit) }}"
+        remote: "{{ __pipenv['git']['remote'] | default(omit) }}"
+        repo: "{{ __pipenv['git']['repo'] }}"
+        separate_git_dir: "{{ __pipenv['git']['separate_git_dir'] | default(omit) }}"
+        single_branch: "{{ __pipenv['git']['single_branch'] | default(omit) }}"
+        ssh_opts: "{{ __pipenv['git']['ssh_opts'] | default(omit) }}"
+        track_submodules: "{{ __pipenv['git']['track_submodules'] | default(omit) }}"
+        umask: "{{ __pipenv['git']['umask'] | default(omit) }}"
+        #update: "{{ __pipenv['git']['update'] | default(omit) }}"
+        verify_commit: "{{ __pipenv['git']['verify_commit'] | default(omit) }}"
+        version: "{{ __pipenv['git']['version'] | default(omit) }}"
+
+    - name: See if venv has been created
+      command: "{{ pipenv_bin }} --venv"
+      args:
+        chdir: "{{ __pipenv['git']['dest'] }}"
+      register: __register_pipenv_venv
+      become: yes
+      become_user: "{{ __pipenv['owner'] }}"
+      ignore_errors: true
+      changed_when: false
+
+    - name: Run pipenv install
+      # TODO maybe support args for pipenv?
+      command: "{{ pipenv_bin }} install"
+      args:
+        chdir: "{{ __pipenv['git']['dest'] }}"
+      become: yes
+      become_user: "{{ __pipenv['owner'] }}"
+      when:
+        - ('No virtualenv' in __register_pipenv_venv.stderr)
+
+    - name: Copy files
+      copy:
+        dest: "{{ item['dest'] }}"
+        owner: "{{ item['owner'] | default(__pipenv['owner']) }}"
+        group: "{{ item['group'] | default(__pipenv['group']) }}"
+        mode: "{{ item['mode'] | default(omit) }}"
+        content: "{{ item['content'] | default(omit) }}"
+      loop: "{{ __pipenv['copy_files'] }}"
+
+    - name: "Run shell {{ __pipenv['name'] }}"
+      shell:
+        chdir: "{{ item['chdir'] | default(__pipenv['git']['dest']) }}"
+        cmd: "{{ item['cmd'] }}"
+        creates: "{{ item['creates'] | default(omit) }}"
+        executable: "{{ item['executable'] | default(omit) }}"
+        removes: "{{ item['removes'] | default(omit) }}"
+        stdin: "{{ item['stdin'] | default(omit) }}"
+        stdin: "{{ item['stdin'] | default(omit) }}"
+        stdin_add_newline: "{{ item['stdin_add_newline'] | default(omit) }}"
+        warn: "{{ item['warn'] | default(omit) }}"
+      become: yes
+      become_user: "{{ __pipenv['owner'] }}"
+      loop: "{{ __pipenv['shells']['after'] }}"
+
+    - name: Enable service
+      service:
+        name: "{{ item['name'] }}"
+        enabled: yes
+      loop: "{{ __pipenv['services'] }}"
+
+    - name: Start service
+      service:
+        name: "{{ item['name'] }}"
+        state: started
+      loop: "{{ __pipenv['services'] }}"

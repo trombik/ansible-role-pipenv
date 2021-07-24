@@ -1,3 +1,4 @@
 ---
-__pipenv_db_dir: /var/db/pipenv
-__pipenv_conf_dir: /usr/local/etc/pipenv
+__pipenv_package: devel/py-pipenv
+__pipenv_extra_packages: []
+__pipenv_bin: pipenv
