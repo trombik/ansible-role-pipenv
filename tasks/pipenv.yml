@@ -53,7 +53,7 @@
         ssh_opts: "{{ __pipenv['git']['ssh_opts'] | default(omit) }}"
         track_submodules: "{{ __pipenv['git']['track_submodules'] | default(omit) }}"
         umask: "{{ __pipenv['git']['umask'] | default(omit) }}"
-        #update: "{{ __pipenv['git']['update'] | default(omit) }}"
+        # update: "{{ __pipenv['git']['update'] | default(omit) }}"
         verify_commit: "{{ __pipenv['git']['verify_commit'] | default(omit) }}"
         version: "{{ __pipenv['git']['version'] | default(omit) }}"
 
@@ -93,7 +93,6 @@
         creates: "{{ item['creates'] | default(omit) }}"
         executable: "{{ item['executable'] | default(omit) }}"
         removes: "{{ item['removes'] | default(omit) }}"
-        stdin: "{{ item['stdin'] | default(omit) }}"
         stdin: "{{ item['stdin'] | default(omit) }}"
         stdin_add_newline: "{{ item['stdin_add_newline'] | default(omit) }}"
         warn: "{{ item['warn'] | default(omit) }}"
